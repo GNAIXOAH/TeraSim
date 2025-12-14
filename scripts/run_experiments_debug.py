@@ -1,8 +1,10 @@
 import argparse
+import random
 import hydra
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
+from tqdm import tqdm
 from terasim.logger.infoextractor import InfoExtractor
 from terasim.simulator import Simulator
 
@@ -46,16 +48,23 @@ def main(config_path: str) -> None:
     # Paths already resolved in config
     sumo_net_file = config.input.sumo_net_file
     sumo_config_file = config.input.sumo_config_file
+    # sumo_additional_file = config.input.sumo_additional_file
+    sumo_additional_file = "./vTypeDistributions.add.xml"
 
     sim = Simulator(
         sumo_net_file_path=sumo_net_file,
         sumo_config_file_path=sumo_config_file,
+        sumo_additional_file_path=sumo_additional_file,
         num_tries=10,
         gui_flag=config.simulator.parameters.gui_flag,
         realtime_flag=config.simulator.parameters.realtime_flag,
         output_path=base_dir,
-        sumo_output_file_types=config.simulator.parameters.sumo_output_file_types,
-        traffic_scale=config.simulator.parameters.traffic_scale if hasattr(config.simulator.parameters, "traffic_scale") else 1,
+        sumo_output_file_types=["collision"],
+        traffic_scale=(
+            config.simulator.parameters.traffic_scale
+            if hasattr(config.simulator.parameters, "traffic_scale")
+            else 1
+        ),
         additional_sumo_args=[
             "--device.bluelight.explicit",
             "true",
