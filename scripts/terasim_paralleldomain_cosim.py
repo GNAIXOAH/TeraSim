@@ -181,6 +181,7 @@ class TeraSimClient:
         self.agent_id_map = {}      # agent_key -> PD agent ID
         self.agent_type_map = {}    # agent_key -> AgentType enum
         self.agent_asset_map = {}   # agent_key -> asset name (for updates)
+        self.agent_last_pose = {}   # agent_key -> (x, y) for speed calculation
         self._cars_poses = {}
 
     def _post(self, path: str, payload: dict) -> dict:
@@ -264,6 +265,85 @@ class TeraSimClient:
             pil_image.save(f"{camera_path}/rgb_frame_{timestamp:04d}_{i}.png")
             logger.info(f"Saved RGB image for timestamp {timestamp} at {camera_path}/rgb_frame_{timestamp:04d}_{i}.png")
 
+    def _retrieve_lidar_bev(self, timestamp: int, base_path: str = "./output_lidar_bev/") -> None:
+        """Render and save LiDAR BEV images from the point cloud annotation.
+
+        PD SDK uses RFU coordinate system:
+        - X = Right (positive to the right of the vehicle)
+        - Y = Forward (positive in front of the vehicle)
+        - Z = Up (positive above the vehicle)
+
+        For BEV (Bird's Eye View), we plot X-Y plane looking down from Z axis.
+        """
+        import matplotlib.pyplot as plt
+
+        os.makedirs(base_path, exist_ok=True)
+
+        for annotation in self._world.get_annotations(annotation_types=sdk.annotations.PointCloud):
+            xyz = annotation.xyz           # (N, 3) in RFU coordinates
+            intensity = annotation.intensity.flatten()  # (N,)
+
+            # Log point cloud statistics for debugging
+            logger.info(f"Point cloud stats - X: [{xyz[:,0].min():.1f}, {xyz[:,0].max():.1f}], "
+                       f"Y: [{xyz[:,1].min():.1f}, {xyz[:,1].max():.1f}], "
+                       f"Z: [{xyz[:,2].min():.1f}, {xyz[:,2].max():.1f}], "
+                       f"N points: {len(xyz)}")
+
+            # Normalize intensity for better visualization
+            intensity_norm = (intensity - intensity.min()) / (intensity.max() - intensity.min() + 1e-6)
+
+            # Create 1:2 vertical BEV image (width 5 inches, height 10 inches)
+            fig, ax = plt.subplots(figsize=(5, 10), dpi=100)
+
+            # BEV view: X (right) on horizontal axis, Y (forward) on vertical axis
+            # Negate X so that left is left and right is right in the image
+            scatter = ax.scatter(
+                -xyz[:, 0],  # -X so left appears on left side
+                xyz[:, 1],   # Y (forward)
+                c=intensity_norm,
+                s=0.3,
+                cmap='plasma',
+                vmin=0, vmax=1
+            )
+
+            # Add ego vehicle marker (red triangle pointing up = forward)
+            ax.plot(0, 0, 'r^', markersize=10)
+
+            # 1:2 aspect ratio: left-right ±30m, back -30m to front +90m
+            ax.set_xlim(-30, 30)
+            ax.set_ylim(-30, 90)
+            ax.set_aspect('equal')
+            ax.set_facecolor('black')
+            ax.axis('off')
+
+            fig.savefig(f"{base_path}/lidar_bev_{timestamp:04d}.png",
+                        bbox_inches='tight', pad_inches=0, facecolor='black')
+            plt.close(fig)
+
+            logger.info(f"Saved LiDAR BEV at {base_path}/lidar_bev_{timestamp:04d}.png")
+
+    def _create_video_from_images(self, image_folder: str, output_video: str, fps: int = 10) -> None:
+        """Create MP4 video from image sequence."""
+        import cv2
+        import glob
+
+        images = sorted(glob.glob(f"{image_folder}/*.png"))
+        if not images:
+            logger.warning(f"No images found in {image_folder}")
+            return
+
+        frame = cv2.imread(images[0])
+        h, w = frame.shape[:2]
+
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        video = cv2.VideoWriter(output_video, fourcc, fps, (w, h))
+
+        for img_path in images:
+            video.write(cv2.imread(img_path))
+
+        video.release()
+        logger.info(f"Created video: {output_video}")
+
     def _get_pd_asset(self, sumo_type: str, agent_category: str) -> Tuple[str, AgentType]:
         """Map SUMO vehicle/VRU type to a random PD asset from the appropriate category.
 
@@ -330,8 +410,11 @@ class TeraSimClient:
                         mode=sdk.map.GroundPoseMode.GROUND_ALIGNED
                     ),
                     sensor_rig=sdk.SensorRig(
-                        sensor_configs=[sdk.examples.sensors.Pinhole],
-                        annotations={sdk.annotations.Depth, sdk.annotations.RGB},
+                        sensor_configs=[
+                            sdk.examples.sensors.Pinhole,       # Front camera
+                            # sdk.examples.sensors.VELODYNE_128,  # 128-beam LiDAR (disabled)
+                        ],
+                        annotations={sdk.annotations.Depth, sdk.annotations.RGB},  # Removed PointCloud
                     )
                 )
             else:
@@ -490,7 +573,7 @@ class TeraSimClient:
             return False
 
     def _add_pedestrian_agent(self, agent_key: str, pose: dict) -> bool:
-        """Add a pedestrian agent to the world using SimpleAgent with human asset.
+        """Add a pedestrian agent to the world using HumanAgent with walking animation.
 
         Returns:
             bool: True if agent was added successfully, False otherwise.
@@ -508,34 +591,50 @@ class TeraSimClient:
         )
 
         try:
-            # Use SimpleAgent for pedestrians - allows external pose control
-            agent = sdk.SimpleAgent(
+            # Use HumanAgent for pedestrians - supports physics and animations
+            agent = sdk.HumanAgent(
                 asset=asset_name,
                 pose=self._world.map.get_ground_poses(
                     assets=asset_name,
                     poses=pedestrian_transform,
                     mode=sdk.map.GroundPoseMode.GROUND_ALIGNED
                 ),
-                physics_enabled=False
             )
             self._world.agents.add(agents=[agent])
+
+            # Set walking animation state after agent is added to world
+            try:
+                agent.set_animation_states(skip_transition=False, animation_state="walk")
+            except Exception as anim_e:
+                logger.warning(f"Could not set walking animation for {agent_key}: {anim_e}")
+
             self.agent_id_map[agent_key] = agent.id
             self.agent_type_map[agent_key] = AgentType.PEDESTRIAN
             self.agent_asset_map[agent_key] = asset_name
-            logger.info(f"Added pedestrian agent {agent_key} with asset {asset_name}")
+            self.agent_last_pose[agent_key] = (adjusted_x, adjusted_y)  # Store initial position
+            logger.info(f"Added pedestrian agent {agent_key} with asset {asset_name} (HumanAgent with walk animation)")
             return True
         except Exception as e:
             logger.error(f"Error adding pedestrian agent for key {agent_key}: {e}")
             return False
 
-    def _update_pedestrian_agent(self, agent_key: str, pose: dict) -> bool:
-        """Update an existing pedestrian agent's pose.
+    def _update_pedestrian_agent(self, agent_key: str, pose: dict, time_delta: float = 0.1) -> bool:
+        """Update an existing pedestrian agent's pose with speed-based animation.
+
+        Calculates movement speed from position delta and adjusts animation state:
+        - speed < 0.3 m/s: idle (standing still)
+        - speed < 1.8 m/s: walk
+        - speed >= 1.8 m/s: run
+
+        Args:
+            agent_key: The unique identifier for this agent
+            pose: Dict containing center_x, center_y, z, sumo_angle
+            time_delta: Time between updates in seconds (default 0.1s = 10Hz)
 
         Returns:
             bool: True if agent was updated successfully, False otherwise.
         """
         generated_agent_id = self.agent_id_map.get(agent_key)
-        # Use the stored asset name from creation (for correct ground alignment calculation)
         asset_name = self.agent_asset_map.get(agent_key)
 
         if generated_agent_id is None or asset_name is None:
@@ -543,6 +642,20 @@ class TeraSimClient:
 
         adjusted_x = pose["center_x"]
         adjusted_y = pose["center_y"]
+
+        # Calculate speed from position delta
+        last_pose = self.agent_last_pose.get(agent_key)
+        if last_pose is not None:
+            dx = adjusted_x - last_pose[0]
+            dy = adjusted_y - last_pose[1]
+            distance = (dx**2 + dy**2) ** 0.5
+            speed = distance / time_delta  # m/s
+        else:
+            speed = 0.0
+
+        # Update stored position
+        self.agent_last_pose[agent_key] = (adjusted_x, adjusted_y)
+
         pedestrian_transform = sdk.Transformation(
             translation=[adjusted_x, adjusted_y, pose["z"]],
             quaternion=sdk.CoordinateSystem("RFU").quaternion_from_rpy(
@@ -552,13 +665,30 @@ class TeraSimClient:
 
         try:
             pedestrian_agent = self._world.agents.get_by_id(agent_id=generated_agent_id)
+
+            # Update pose
             pedestrian_agent.update_pose(
                 self._world.map.get_ground_poses(
-                    assets=asset_name,  # Use stored asset for correct ground alignment
+                    assets=asset_name,
                     poses=pedestrian_transform,
                     mode=sdk.map.GroundPoseMode.GROUND_ALIGNED
                 )
             )
+
+            # Adjust animation based on speed
+            try:
+                if speed < 0.3:
+                    # Standing still or very slow
+                    pedestrian_agent.set_animation_states(skip_transition=True, animation_state="idle")
+                elif speed < 1.8:
+                    # Normal walking speed (typical: 1.2-1.5 m/s)
+                    pedestrian_agent.set_animation_states(skip_transition=True, animation_state="walk")
+                else:
+                    # Fast movement - running
+                    pedestrian_agent.set_animation_states(skip_transition=True, animation_state="run")
+            except Exception as anim_e:
+                pass  # Silently ignore animation errors to avoid log spam
+
             return True
         except Exception as e:
             logger.error(f"Error updating pedestrian agent for key {agent_key}: {e}")
@@ -583,7 +713,7 @@ class TeraSimClient:
         current_vehicles = agent_state.get("vehicle", {})
         current_vrus = agent_state.get("vru", {})
         # Filter VRUs to only keep bicycles (bike type)
-        current_vrus = {k: v for k, v in current_vrus.items() if self._is_bicycle_type(v.get("type", ""))}
+        # current_vrus = {k: v for k, v in current_vrus.items() if self._is_bicycle_type(v.get("type", ""))}
 
         # Combine all agent keys for tracking
         current_all_keys = set(current_vehicles.keys()) | set(current_vrus.keys())
@@ -738,7 +868,12 @@ class TeraSimClient:
                 # Save RGB images when capturing frames
                 if capture_this_frame:
                     self._retrieve_rgb(i)
+                    # self._retrieve_lidar_bev(i)  # LiDAR BEV disabled
                 i += 1
+
+        # Create videos from captured images
+        self._create_video_from_images("./output_images/camera_0/", "./rgb_video.mp4")
+        # self._create_video_from_images("./output_lidar_bev/", "./lidar_bev_video.mp4")  # LiDAR disabled
 
         # Get final results
         result = self.get_result(simulation_id)
@@ -775,7 +910,7 @@ def main():
         seed=seed,
         simulation_length_s=6.0,
         framerate_fps=10.0, 
-        instance_name="mustccnt")
+        instance_name="llwoubqj")
     result = client.run_simulation(config_file=args.config, tick_timeout= 4800, auto_run=args.auto_run, viz_update_freq=2, enable_viz=False)
     print(f"Simulation result: {result}")
 
