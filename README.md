@@ -3,127 +3,167 @@
 
 <img src="docs/figure/logo.png" height="100px">
 
-**Generative Autonomous Vehicle Testing Environment for Unknown Unsafe Events Discovery**
-
----
-
-<a href="https://mcity.github.io/TeraSim">Website</a> • <a href="https://arxiv.org/abs/2503.03629">Paper</a> • <a href="https://github.com/mcity/TeraSim/tree/main/examples">Examples</a> • <a href="https://github.com/mcity/TeraSim/discussions">Community</a>
-
-[![PyPI python](https://img.shields.io/pypi/pyversions/terasim)](https://pypi.org/project/terasim)
-[![PyPI version](https://badge.fury.io/py/terasim.svg)](https://pypi.org/project/terasim)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![GitHub issues](https://img.shields.io/github/issues/mcity/TeraSim.svg)](https://github.com/mcity/TeraSim/issues)
-
 </p>
 </div>
 
-## About
-
-TeraSim is an **open-source traffic simulation platform** designed for **naturalistic and adversarial testing** of autonomous vehicles (AVs). It enables **high-speed, AI-driven testing environment generation** to expose AVs to both routine and **rare, high-risk driving conditions**.  
-
-Developed with **researchers, AV developers, and regulators** in mind, TeraSim is designed to better support **ISO 21448 (SOTIF) and ISO 34502 compliance**, providing a **scalable, automated, and unbiased AV evaluation framework**.
-
-Built upon the open-source traffic simulation software [SUMO (Simulation of Urban MObility)](https://www.eclipse.org/sumo/), TeraSim extends its capabilities to provide specialized features for autonomous vehicle testing.
 
 
-## **🎥 Demo Video**
-
-[![TeraSim Demo Video](https://img.youtube.com/vi/9wc5QTAETTk/0.jpg)](https://www.youtube.com/watch?v=9wc5QTAETTk)
-
-TeraSim is built upon a series of foundational academic works in autonomous vehicle testing:
-
-- **NDE** ([Paper](https://doi.org/10.1038/s41467-023-37677-5) | [Code](https://github.com/michigan-traffic-lab/Learning-Naturalistic-Driving-Environment)): Learning naturalistic driving environment with statistical realism. *Yan, X., Zou, Z., Feng, S., et al. Nature Communications 14, 2037 (2023).*
-
-- **NADE** ([Paper](https://doi.org/10.1038/s41467-021-21007-8) | [Code](https://github.com/michigan-traffic-lab/Naturalistic-and-Adversarial-Driving-Environment)): Intelligent driving intelligence test for autonomous vehicles with naturalistic and adversarial environment. *Feng, S., Yan, X., Sun, H. et al. Nature Communications 12, 748 (2021).*
-
-- **D2RL** ([Paper](https://doi.org/10.1038/s41586-023-05732-2) | [Code](https://github.com/michigan-traffic-lab/Dense-Deep-Reinforcement-Learning)): Dense reinforcement learning for safety validation of autonomous vehicles. *Feng, S., Sun, H., Yan, X., et al. Nature 615, 620–627 (2023).*
+<p align="center">
+<strong>Generative AI–Driven Autonomous Vehicle Simulation for Unknown Unsafe Events Discovery</strong>
+</p>
 
 ---
 
-## **🌟 Key Features**  
-✅ **Generative Driving Environment Testing**  
-→ **Adaptive and interactive** environments replace static, manually designed scenarios.  
-→ **Automatically uncovers unknown unsafe events**, enhancing AV safety validation.  
-→ **Scalable and efficient**, reducing manual effort while expanding test coverage.
+## Overview
 
-✅ **Naturalistic & Adversarial Driving Environments (NADE)**  
-→ Real-world traffic behavior modeling based on **large-scale naturalistic driving data**.  
-→ Injects **corner cases** (e.g., jaywalking pedestrians, sudden lane changes) to rigorously test AV safety.  
+TeraSim is an open-source platform for automated autonomous-vehicle (AV) simulation using generative AI.
+Its primary objective is to **efficiently uncover real-world unknown unsafe events** by automatically creating diverse and statistically realistic traffic environments.
 
-✅ **Scalable & Automated AV Testing**  
-→ AI-driven **naturalistic and adversarial driving environment** accelerates AV validation **by 1,000x - 100,000x** compared to real-world testing.  
-→ Dynamically adapts test cases to **urban, highway, and mixed-traffic conditions**.  
+The framework has evolved from its initial focus on planning-and-control testing to a **complete simulation workflow**, which now includes:
 
-✅ **Seamless Integration with Third-Party Simulators**  
-→ Works with **CARLA, Autoware**, and more.  
-→ API-driven design enables **plug-and-play simulation** for integration with third-party simulators.  
+1. **High-fidelity HD map generation** for large-scale, accurate simulation environments
+2. **Generative traffic environment creation** for naturalistic and adversarial scenario testing
+3. **Generative sensor simulation** for camera and LiDAR perception validation
 
-✅ **City-Scale AV Testing with TeraSim-Macro**  
-→ Extends simulations from **single intersections to entire cities**, supporting **policy-level AV impact analysis**.  
+This expanded scope enables a unified pipeline from map generation to perception and planning validation.
 
-✅ **Multimodal Inputs & AI-Assisted Environment Creation**  
-→ TeraSim-GPT enables **language-driven environment customization**.  
-→ Define test cases in natural language: *"Create a left-turn driving environment at a busy intersection."*  
+## 🚀 **Updates**
 
----
-
-## **🛠️ System Architecture**  
-
-TeraSim is modular, allowing users to **customize and extend** simulations easily. 
-
-![Architecture](docs/figure/TeraSim_architecture.svg)
+- **[09/29/2025]**: TeraSim-World source codes are available. See [TeraSim_World.md](docs/TeraSim_World.md) to get started.
 
 
-📌 **Core Components:**  
-- **[TeraSim](https://github.com/mcity/TeraSim):** Base simulation engine for generating AV test environments.  
-- **[TeraSim-NDE-NADE](https://github.com/mcity/TeraSim-NDE-NADE):** Realistic & adversarial driving environments for safety evaluation.  
-  - **Vehicle Adversities** (e.g., aggressive cut-ins, emergency braking).  
-  - **VRU Adversities** (e.g., jaywalking pedestrians, erratic cyclists).  
-- **[TeraSim-Service](https://github.com/mcity/TeraSim-Service):** RESTful API service built with FastAPI for seamless integration with **popular simulators like CARLA and AWSim**. Enables standardized communication and control.
-- **TeraSim-Macro** (coming soon): Enables **mesoscopic city-scale AV testing**.  
-- **TeraSim-Data-Zoo** (coming soon): Repository for **real-world driving data (Waymo, NuScenes, NuPlan)**.  
-- **TeraSim-GPT** (coming soon): AI-powered **multimodal user input handling** for environment customization.  
 
-📌 **Plug-and-Play Compatibility:**  
-✅ SUMO-based microsimulation  
-✅ CARLA & Autoware integration  
-✅ Real-world dataset support  
+## **🌎 New Feature: TeraSim-World**
+
+
+[<img src="docs/figure/TeraSim_World.png" height="400px">](https://www.youtube.com/watch?v=75T1-2Ce0Ds)
+
+<h3 align="center">
+📄 <a href="https://arxiv.org/abs/2509.13164">arXiv</a> | 🌐 <a href="https://wjiawei.com/terasim-world-web/">Website</a> | 🎥 <a href="https://www.youtube.com/watch?v=75T1-2Ce0Ds">Video</a>
+</h3>
+
+**TeraSim-World** automatically synthesizes geographically grounded, safety-critical data for End-to-End autonomous driving **anywhere in the world**. 
+
+✨ **Key Capabilities:**
+- 🗺️ **Global Coverage**: Generate realistic driving scenarios for any location worldwide
+- 🎯 **Safety-Critical Data**: Automatically create safety-critical events for E2E AV safety testing
+- 🔄 **NVIDIA Cosmos-Drive Compatible**: Direct integration with video generation model training platforms
+
+🚀 **Source code is now available!** See [TeraSim_World.md](docs/TeraSim_World.md) for getting started guide.
 
 ---
 
-## **🔧 Installation**  
+## Key Capabilities
 
-Currently, TeraSim is under active development. Please install it from source using poetry (required) and Anaconda (optional).
+### 1. High-Fidelity HD Map Generation
 
-```bash
-conda create -n terasim python=3.10
-conda activate terasim
+* Tools for building **city-scale, high-resolution digital twins** suitable for AV testing.
+* Automated conversion of real-world survey data into simulation-ready HD maps.
+* Provides accurate lane geometry and traffic-control metadata for downstream simulations.
+
+### 2. Generative Traffic Environment Creation
+
+* Automated scenario generation based on **large-scale naturalistic driving data**.
+* **Adversarial scenario synthesis** to reveal rare or high-risk interactions (e.g., aggressive cut-ins, unexpected pedestrian crossings).
+* Integration with [SUMO](https://www.eclipse.org/sumo/) and third-party simulators such as [CARLA](https://carla.org/) and Autoware.
+
+### 3. Generative Sensor Simulation
+
+* **`terasim-cosmos`** integrates TeraSim-World with **generative AI–based camera and LiDAR simulation**.
+* Enables perception validation and sensor pipeline testing under diverse conditions.
+* **Ongoing work:** support for fully **custom sensor models and configurable realism levels** is under active development.
+
+---
+
+## System Architecture
+
+TeraSim uses a modular monorepo design. Each package can be used independently or combined into a complete simulation pipeline.
+
 ```
+TeraSim/
+├── packages/
+│   ├── terasim/            # Core simulation engine
+│   ├── terasim-envgen/     # HD map and environment generation
+│   ├── terasim-nde-nade/   # Naturalistic & adversarial environment algorithms
+│   ├── terasim-cosmos/     # TeraSim-World integration & generative AI sensor simulation
+│   ├── terasim-sensor/     # Baseline sensor utilities
+│   ├── terasim-datazoo/    # Data processing utilities for real driving datasets
+│   ├── terasim-service/    # RESTful API for external simulators
+│   └── terasim-vis/        # Visualization and analysis tools
+├── examples/               # Example configurations and scenarios
+├── docs/                   # Documentation and figures
+└── tests/                  # Test suites
+```
+
+---
+
+## Installation
+
+### Quick Setup
 
 ```bash
 git clone https://github.com/mcity/TeraSim.git
 cd TeraSim
-poetry install
+conda create -n terasim python=3.10 -y
+conda activate terasim
+./setup_environment.sh
 ```
 
+This script installs all required Python packages and dependencies, including [SUMO](https://www.eclipse.org/sumo/).
 
-## **🚀 Why TeraSim?**  
+<!-- ### Docker Installation (Recommended for Production)
 
-🔍 **Uncover Hidden AV Risks**  
-→ Dynamically generates realistic and adversarial traffic environments, identifying **corner cases**.  
+For a containerized environment with all dependencies pre-installed:
 
-⚡ **Automated & Scalable**  
-→ Uses AI to generate simulations across cities, with **1000x faster testing efficiency** than real-world methods.  
+```bash
+git clone https://github.com/mcity/TeraSim.git
+cd TeraSim
+docker-compose up -d --build
+docker-compose exec terasim bash
+```
 
-🔗 **Seamless Integration**  
-→ Plugin-based design works with **existing AV stacks & third-party simulators**.  
+See [README_DOCKER.md](README_DOCKER.md) for detailed Docker deployment instructions. -->
 
-📢 **Open-Source & Extensible**  
-→ Encourages industry collaboration for **safer, more reliable AV deployment**.  
+**Requirements**
+
+* Python 3.10–3.12
+* SUMO 1.23.1 (installed by the setup script)
+* Redis for service components
+* gcc/g++ compilers (for Cython extensions)
 
 ---
 
-<!-- ## **📌 Next Steps**
-- Read the **[Quick Start Guide](#quick-start-guide)**.  
-- Try a **[Basic Simulation](#basic-simulation-example)**.  
-- Join our **[Community Discussions](https://github.com/michigan-traffic-lab/TeraSim/discussions)**.  -->
+## Quick Start Example
+
+See [TeraSim_World.md](docs/TeraSim_World.md) for Quick Start Example.
+
+Additional examples are available in the [`examples/`](examples/) directory.
+
+---
+
+## Contributing
+
+Contributions are welcome. Please read the [CONTRIBUTING.md](CONTRIBUTING.md) guidelines and join the [GitHub discussions](https://github.com/mcity/TeraSim/discussions) for feedback or proposals.
+
+---
+
+
+## Publications
+
+Explore our other research on autonomous driving testing!
+
+* **NDE** – Learning naturalistic driving environment with statistical realism
+  [Paper](https://doi.org/10.1038/s41467-023-37677-5) | [Code](https://github.com/michigan-traffic-lab/Learning-Naturalistic-Driving-Environment)
+
+* **NADE** – Intelligent driving intelligence test with naturalistic and adversarial environment
+  [Paper](https://doi.org/10.1038/s41467-021-21007-8) | [Code](https://github.com/michigan-traffic-lab/Naturalistic-and-Adversarial-Driving-Environment)
+
+* **D2RL** – Dense deep reinforcement learning for AV safety validation
+  [Paper](https://doi.org/10.1038/s41586-023-05732-2) | [Code](https://github.com/michigan-traffic-lab/Dense-Deep-Reinforcement-Learning)
+
+## **📄 License**
+
+- **TeraSim Core and other packages**: Apache 2.0 License
+- **Visualization Tools**: MIT License
+
+This project includes modified code from [SumoNetVis](https://github.com/patmalcolm91/SumoNetVis) licensed under the MIT License.
